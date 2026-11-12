@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz – Les 99 noms d’Allah</title>
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--tx:#1f2a24;--mut:#6b756e;--ac:#1f6b4f;--acx:#fff;--ok:#2e7d32;--ko:#c62828;--bd:#dcd6c8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14201a;--card:#1d2c24;--tx:#eef2ee;--mut:#9aa89f;--ac:#5fc29a;--acx:#0d1f17;--ok:#66bb6a;--ko:#ef5350;--bd:#33463c}}
+:root[data-theme="dark"]{--bg:#14201a;--card:#1d2c24;--tx:#eef2ee;--mut:#9aa89f;--ac:#5fc29a;--acx:#0d1f17;--ok:#66bb6a;--ko:#ef5350;--bd:#33463c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.4rem;margin:0 0 4px;text-align:center}
+.sub{color:var(--mut);text-align:center;margin:0 0 18px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px;margin-bottom:14px}
+label{display:block;font-weight:600;margin-bottom:6px}
+.row{display:flex;align-items:center;gap:12px}
+.row input[type=range]{flex:1;accent-color:var(--ac)}
+.big{font-size:1.5rem;font-weight:700;min-width:2.2ch;text-align:center}
+select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:1rem}
+button{font:inherit;cursor:pointer}
+.go{width:100%;padding:14px;border:0;border-radius:12px;background:var(--ac);color:var(--acx);font-weight:700;font-size:1.05rem;margin-top:10px}
+.q{text-align:center}
+.tl{font-size:1.7rem;font-weight:700;margin:8px 0 4px}
+.tl.sm{font-size:1.3rem}
+.prompt{color:var(--mut);font-size:.9rem}
+.opt{display:block;width:100%;text-align:left;padding:13px 14px;margin-top:9px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:1rem}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,transparent)}
+.opt.ko{border-color:var(--ko);background:color-mix(in srgb,var(--ko) 18%,transparent)}
+.bar{height:6px;background:var(--bd);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.bar>i{display:block;height:100%;background:var(--ac);width:0}
+.meta{display:flex;justify-content:space-between;color:var(--mut);font-size:.9rem;margin-bottom:8px}
+.fb{min-height:1.4em;margin-top:12px;text-align:center;font-weight:600}
+.score{font-size:2.6rem;font-weight:800;text-align:center;color:var(--ac)}
+.hide{display:none}
+.heart{position:fixed;bottom:-50px;pointer-events:none;z-index:50;animation:rise linear forwards}
+@keyframes rise{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(-115vh) rotate(25deg);opacity:0}}
+details{margin-top:14px}
+summary{cursor:pointer;color:var(--mut)}
+ul.list{padding:0;margin:8px 0 0;list-style:none}
+ul.list li{padding:6px 0;border-top:1px solid var(--bd);font-size:.92rem}
+ul.list b{color:var(--ac)}
+</style>
+</head>
+<body>
+<main>
+<h1>Les 99 noms d’Allah</h1>
+<p class="sub">Un nom par jour, un quiz pour réviser ensemble</p>
+
+<section id="setup" class="card">
+  <label for="n">Noms appris jusqu’ici</label>
+  <div class="row"><input type="range" id="n" min="3" max="99" value="4"><span class="big" id="nv">4</span></div>
+  <div style="height:12px"></div>
+  <label for="mode">Mode</label>
+  <select id="mode">
+    <option value="mix">Mélange</option>
+    <option value="tr">Nom → traduction</option>
+    <option value="rev">Traduction → nom</option>
+  </select>
+  <button class="go" id="start">Commencer</button>
+  <details><summary>Voir les noms inclus</summary><ul class="list" id="list"></ul></details>
+</section>
+
+<section id="game" class="hide">
+  <div class="meta"><span id="cnt"></span><span id="sc"></span></div>
+  <div class="bar"><i id="pg"></i></div>
+  <div class="card q">
+    <div class="prompt" id="pr"></div>
+    <div id="face"></div>
+    <div id="opts"></div>
+    <div class="fb" id="fb"></div>
+    <button class="go hide" id="next">Suivant</button>
+  </div>
+</section>
+
+<section id="end" class="card hide">
+  <div class="score" id="fs"></div>
+  <p class="sub" id="fm"></p>
+  <button class="go" id="again">Rejouer</button>
+  <button class="go" id="home" style="background:transparent;color:var(--tx);border:1px solid var(--bd)">Changer les réglages</button>
+</section>
+</main>
+
+<script>
+// [nom, traduction] – dans l’ordre le plus courant ; modifiez ici si votre liste diffère
+const NAMES = [
+["Ar-Rahmân","Le Tout Miséricordieux"],["Ar-Rahîm","Le Très Miséricordieux"],["Al-Malik","Le Souverain"],["Al-Quddûs","Le Saint"],
+["As-Salâm","La Paix (la Source de paix)"],["Al-Mu’min","Celui qui accorde la sécurité"],["Al-Muhaymin","Le Protecteur"],["Al-‘Azîz","Le Tout-Puissant"],
+["Al-Jabbâr","Le Contraignant"],["Al-Mutakabbir","Le Suprême"],["Al-Khâliq","Le Créateur"],["Al-Bâri’","Celui qui donne vie"],
+["Al-Musawwir","Le Façonneur"],["Al-Ghaffâr","Celui qui pardonne toujours"],["Al-Qahhâr","Le Dominateur suprême"],["Al-Wahhâb","Le Grand Donateur"],
+["Ar-Razzâq","Le Pourvoyeur"],["Al-Fattâh","Celui qui ouvre (le Juge)"],["Al-‘Alîm","L’Omniscient"],["Al-Qâbid","Celui qui retient"],
+["Al-Bâsit","Celui qui étend"],["Al-Khâfid","Celui qui abaisse"],["Ar-Râfi‘","Celui qui élève"],["Al-Mu‘izz","Celui qui honore"],
+["Al-Mudhill","Celui qui humilie"],["As-Samî‘","L’Audient"],["Al-Basîr","Le Clairvoyant"],["Al-Hakam","Le Juge"],
+["Al-‘Adl","Le Juste"],["Al-Latîf","Le Subtil"],["Al-Khabîr","Le Parfaitement Informé"],["Al-Halîm","Le Longanime"],
+["Al-‘Azîm","Le Magnifique"],["Al-Ghafûr","Celui qui pardonne beaucoup"],["Ash-Shakûr","Le Très Reconnaissant"],["Al-‘Aliyy","Le Très Haut"],
+["Al-Kabîr","Le Très Grand"],["Al-Hafîz","Le Gardien"],["Al-Muqît","Celui qui nourrit"],["Al-Hasîb","Celui qui suffit"],
+["Al-Jalîl","Le Majestueux"],["Al-Karîm","Le Généreux"],["Ar-Raqîb","Le Vigilant"],["Al-Mujîb","Celui qui exauce"],
+["Al-Wâsi‘","L’Immense"],["Al-Hakîm","Le Sage"],["Al-Wadûd","Le Très Aimant"],["Al-Majîd","Le Glorieux"],
+["Al-Bâ‘ith","Celui qui ressuscite"],["Ash-Shahîd","Le Témoin"],["Al-Haqq","La Vérité"],["Al-Wakîl","Le Garant"],
+["Al-Qawiyy","Le Fort"],["Al-Matîn","L’Inébranlable"],["Al-Waliyy","L’Allié (le Protecteur)"],["Al-Hamîd","Le Digne de louange"],
+["Al-Muhsî","Celui qui dénombre tout"],["Al-Mubdi’","Celui qui commence la création"],["Al-Mu‘îd","Celui qui ramène à la vie"],["Al-Muhyî","Celui qui donne la vie"],
+["Al-Mumît","Celui qui donne la mort"],["Al-Hayy","Le Vivant"],["Al-Qayyûm","Celui qui subsiste par Lui-même"],["Al-Wâjid","Celui qui trouve tout"],
+["Al-Mâjid","Le Noble"],["Al-Wâhid","L’Unique"],["Al-Ahad","L’Un"],["As-Samad","Le Seul à être imploré"],
+["Al-Qâdir","Le Capable"],["Al-Muqtadir","Le Très Puissant"],["Al-Muqaddim","Celui qui avance"],["Al-Mu’akhkhir","Celui qui retarde"],
+["Al-Awwal","Le Premier"],["Al-Âkhir","Le Dernier"],["Az-Zâhir","L’Apparent"],["Al-Bâtin","Le Caché"],
+["Al-Wâlî","Le Maître"],["Al-Muta‘âl","Le Très Élevé"],["Al-Barr","Le Bienfaisant"],["At-Tawwâb","Celui qui accepte le repentir"],
+["Al-Muntaqim","Celui qui punit les injustes"],["Al-‘Afuww","Celui qui efface les péchés"],["Ar-Ra’ûf","Le Très Compatissant"],["Mâlik-ul-Mulk","Le Maître du Royaume"],
+["Dhul-Jalâli wal-Ikrâm","Le Détenteur de la Majesté et de la Générosité"],["Al-Muqsit","L’Équitable"],["Al-Jâmi‘","Celui qui rassemble"],["Al-Ghanî","Le Riche par Lui-même"],
+["Al-Mughnî","Celui qui enrichit"],["Al-Mâni‘","Celui qui empêche"],["Ad-Dârr","Celui qui éprouve"],["An-Nâfi‘","Celui qui accorde le bien"],
+["An-Nûr","La Lumière"],["Al-Hâdî","Le Guide"],["Al-Badî‘","Le Créateur sans modèle"],["Al-Bâqî","Celui qui demeure éternellement"],
+["Al-Wârith","L’Héritier"],["Ar-Rashîd","Celui qui guide vers le droit chemin"],["As-Sabûr","Le Très Patient"]
+];
+const $ = id => document.getElementById(id);
+const ROUND = 10;
+let pool, queue, i, score, locked, mode;
+
+const nEl = $("n");
+nEl.max = NAMES.length;
+function renderList(){
+  const k = +nEl.value; $("nv").textContent = k;
+  $("list").innerHTML = NAMES.slice(0,k).map((x,j)=>`<li><b>${j+1}.</b> ${x[0]} : ${x[1]}</li>`).join("");
+}
+nEl.oninput = renderList; renderList();
+
+const shuffle = a => { a = a.slice(); for(let j=a.length-1;j>0;j--){const r=Math.floor(Math.random()*(j+1));[a[j],a[r]]=[a[r],a[j]];} return a; };
+function show(id){ ["setup","game","end"].forEach(s=>$(s).classList.toggle("hide",s!==id)); }
+
+function start(){
+  pool = NAMES.slice(0,+nEl.value); mode = $("mode").value;
+  let q = [];
+  while(q.length < ROUND) q = q.concat(shuffle(pool));
+  queue = q.slice(0,ROUND); i = 0; score = 0;
+  show("game"); ask();
+}
+
+function ask(){
+  locked = false;
+  const cur = queue[i];
+  const m = mode === "mix" ? (Math.random()<.5 ? "tr" : "rev") : mode;
+  $("cnt").textContent = `Question ${i+1}/${ROUND}`;
+  $("sc").textContent = `Score : ${score}`;
+  $("pg").style.width = (i/ROUND*100)+"%";
+  $("fb").textContent = ""; $("next").classList.add("hide");
+  let face, pr, ansIdx;
+  if(m==="tr"){ pr="Que signifie ce nom ?"; face=`<div class="tl">${cur[0]}</div>`; ansIdx=1; }
+  else { pr="Quel est ce nom ?"; face=`<div class="tl sm">${cur[1]}</div>`; ansIdx=0; }
+  $("pr").textContent = pr; $("face").innerHTML = face;
+  const others = shuffle(pool.filter(x=>x!==cur)).slice(0,Math.min(3,pool.length-1));
+  const opts = shuffle([cur,...others]);
+  $("opts").innerHTML = "";
+  opts.forEach(o=>{
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = o[ansIdx];
+    b.dataset.good = o===cur ? "1" : "";
+    b.onclick = () => pick(b, o===cur, cur);
+    $("opts").appendChild(b);
+  });
+}
+
+function pick(btn, good, cur){
+  if(locked) return; locked = true;
+  if(good){ score++; btn.classList.add("ok"); $("fb").textContent = "MashaAllah, bonne réponse !"; }
+  else {
+    btn.classList.add("ko");
+    document.querySelectorAll(".opt").forEach(b=>{ if(b.dataset.good) b.classList.add("ok"); });
+    $("fb").textContent = `${cur[0]} : ${cur[1]}`;
+  }
+  $("sc").textContent = `Score : ${score}`;
+  $("next").textContent = i===ROUND-1 ? "Voir le résultat" : "Suivant";
+  $("next").classList.remove("hide");
+}
+
+$("next").onclick = () => { i++; if(i>=ROUND) finish(); else ask(); };
+function finish(){
+  $("fs").textContent = `${score} / ${ROUND}`;
+  $("fm").textContent = score===ROUND ? "Sans faute, MashaAllah !" : score>=ROUND*0.7 ? "Très bien, continuez comme ça !" : "Rejouez pour bien ancrer les noms.";
+  show("end");
+  if(score===ROUND) hearts();
+}
+function hearts(){
+  const em = ["❤️","💖","💚","💕","💗"];
+  for(let k=0;k<45;k++){
+    const h = document.createElement("span");
+    h.className = "heart";
+    h.textContent = em[Math.floor(Math.random()*em.length)];
+    h.style.left = (Math.random()*95)+"vw";
+    h.style.fontSize = (20+Math.random()*30)+"px";
+    const d = 3+Math.random()*3;
+    h.style.animationDuration = d+"s";
+    h.style.animationDelay = (Math.random()*1.5)+"s";
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(), (d+2)*1000);
+  }
+}
+$("start").onclick = start; $("again").onclick = start; $("home").onclick = () => show("setup");
+</script>
+</body>
+</html>
